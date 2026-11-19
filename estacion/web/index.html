@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estación Geoespacial de Reconocimiento | Universidad de Colima</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              500: '#10b981',
+              600: '#059669',
+              900: '#064e3b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Leaflet.js CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  
+  <!-- Estilos Personalizados Externos -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="h-full flex flex-col font-sans overflow-hidden antialiased bg-slate-950 text-slate-100">
+
+  <!-- ================= AUTH SCREEN ================= -->
+  <div id="authScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 p-4">
+    <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]"></div>
+    
+    <div class="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-8 backdrop-blur-xl">
+      <div class="text-center mb-8">
+        <div class="inline-flex p-3 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-4">
+          <i class="fa-solid fa-satellite-dish text-3xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Estación Geoespacial</h1>
+        <p class="text-xs text-slate-400 mt-1">Práctica II | Universidad de Colima</p>
+      </div>
+
+      <form id="loginForm" class="space-y-5" onsubmit="event.preventDefault(); window.app.handleLogin();">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Usuario / Matrícula</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+              <i class="fa-solid fa-user text-sm"></i>
+            </span>
+            <input type="text" id="username" required value="operador"
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Contraseña</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+              <i class="fa-solid fa-lock text-sm"></i>
+            </span>
+            <input type="password" id="password" required autocomplete="current-password"
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Rol de Operación</label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="relative flex items-center justify-center p-3 rounded-lg border border-slate-800 bg-slate-950 cursor-pointer hover:border-slate-700 transition">
+              
+              <div class="text-center peer-checked:text-emerald-400">
+                <i class="fa-solid fa-user-shield block text-lg mb-1"></i>
+                <span class="text-xs font-medium">Administrador</span>
+              </div>
+              <div class="absolute inset-0 border-2 border-emerald-500 rounded-lg pointer-events-none opacity-0 peer-checked:opacity-100 transition"></div>
+            </label>
+
+            <label class="relative flex items-center justify-center p-3 rounded-lg border border-slate-800 bg-slate-950 cursor-pointer hover:border-slate-700 transition">
+              
+              <div class="text-center peer-checked:text-emerald-400">
+                <i class="fa-solid fa-eye block text-lg mb-1"></i>
+                <span class="text-xs font-medium">Usuario</span>
+              </div>
+              <div class="absolute inset-0 border-2 border-emerald-500 rounded-lg pointer-events-none opacity-0 peer-checked:opacity-100 transition"></div>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit"
+          class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-lg shadow-lg shadow-emerald-900/30 transition flex items-center justify-center space-x-2">
+          <span>Iniciar Sesión</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      <button type="button" onclick="window.app.register()">Registrar cuenta de usuario</button></form>
+
+      <div class="mt-6 pt-4 border-t border-slate-800 text-center">
+        <p class="text-xs text-slate-500">Credenciales demo: Cualquier contraseña de 6+ caracteres.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAIN LAYOUT ================= -->
+  <div id="mainApp" class="flex-1 flex overflow-hidden hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0">
+      <div>
+        <div class="h-16 flex items-center space-x-3 px-6 border-b border-slate-800">
+          <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <i class="fa-solid fa-satellite-dish text-xl"></i>
+          </div>
+          <div>
+            <h2 class="font-bold text-sm text-white">GeoStation</h2>
+            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">UCOL Telematics</p>
+          </div>
+        </div>
+
+        <nav class="p-4 space-y-1">
+          <button onclick="window.app.switchTab('tab-inicio')" id="nav-tab-inicio"
+            class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+            <i class="fa-solid fa-house text-lg w-6"></i>
+            <span>Inicio</span>
+          </button>
+          
+          <button onclick="window.app.switchTab('tab-monitoreo')" id="nav-tab-monitoreo"
+            class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i class="fa-solid fa-chart-line text-lg w-6"></i>
+            <span>Monitoreo Live</span>
+          </button>
+
+          <button onclick="window.app.switchTab('tab-base-datos')" id="nav-tab-base-datos"
+            class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i class="fa-solid fa-database text-lg w-6"></i>
+            <span>Análisis & CRUD</span>
+          </button>
+
+          <button onclick="window.app.switchTab('tab-control')" id="nav-tab-control"
+            class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i class="fa-solid fa-gamepad text-lg w-6"></i>
+            <span>Gestión & Control</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- User Footer Info -->
+      <div class="p-4 border-t border-slate-800">
+        <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 flex items-center justify-between">
+          <div class="flex items-center space-x-3 overflow-hidden">
+            <div id="userAvatar" class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-xs shrink-0">
+              A
+            </div>
+            <div class="truncate">
+              <p id="displayUsername" class="text-xs font-bold text-white truncate">Usuario</p>
+              <span id="displayRoleBadge" class="inline-block text-[9px] uppercase px-1.5 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-400">ADMIN</span>
+            </div>
+          </div>
+          <button onclick="window.app.handleLogout()" class="text-slate-400 hover:text-rose-400 p-1.5 rounded-lg transition" title="Cerrar Sesión">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col overflow-y-auto bg-slate-950">
+      
+      <!-- Topbar Header -->
+      <header class="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-20">
+        <div class="flex items-center space-x-3">
+          <h1 id="currentTabTitle" class="text-base font-bold text-white">Inicio / Portada</h1>
+          <span class="text-slate-600">|</span>
+          <div class="flex items-center space-x-2">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <span id="mqttStatusLabel" class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Sin conexion</span>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+          <div class="text-right">
+            <p id="liveClock" class="text-xs font-mono font-bold text-slate-200">00:00:00 UTC</p>
+            <p class="text-[10px] text-slate-400">Telemetría LoRa-2G Active</p>
+          </div>
+        </div>
+      </header>
+
+      <!-- TAB 1: INICIO (PORTADA INSTITUCIONAL) -->
+      <section id="tab-inicio" class="p-6 space-y-8 max-w-7xl mx-auto w-full">
+        <!-- Hero Banner -->
+        <div class="relative rounded-3xl overflow-hidden bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 border border-slate-800 p-8 shadow-2xl">
+          <div class="absolute -right-10 -bottom-10 opacity-10 text-emerald-400 pointer-events-none">
+            <i class="fa-solid fa-satellite text-[260px]"></i>
+          </div>
+
+          <div class="relative z-10 max-w-3xl space-y-4">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+              <i class="fa-solid fa-graduation-cap"></i>
+              <span>Universidad de Colima • Facultad de Telemática</span>
+            </div>
+
+            <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
+              Estación Geoespacial de Reconocimiento y Telemetría Distribuida
+            </h1>
+
+            <p class="text-sm text-slate-300 leading-relaxed">
+              Práctica II: Plataforma web IoT full-stack integrada para la adquisición, procesamiento geoespacial y control remoto autónomo de unidades robóticas terrestres mediante arquitectura distribuida LoRa, MQTT y cloud microservices.
+            </p>
+
+            <div class="pt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-slate-800/80">
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400">Ingeniería</span>
+                <p class="text-xs font-semibold text-slate-200">Tecnologías de Internet</p>
+              </div>
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400">Semestre</span>
+                <p class="text-xs font-semibold text-slate-200">7° Semestre</p>
+              </div>
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400">Asignatura</span>
+                <p class="text-xs font-semibold text-slate-200">Entornos Inteligentes</p>
+              </div>
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400">Docente</span>
+                <p class="text-xs font-semibold text-emerald-400">Castellanos Berján Esli</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team Roster -->
+        <div class="space-y-4">
+          <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-users text-emerald-400 text-xl"></i>
+            <h2 class="text-lg font-bold text-white">Equipo de Desarrollo & Investigación</h2>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-emerald-500/40 transition group">
+              <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-lg mb-3 group-hover:scale-105 transition">
+                EL
+              </div>
+              <h3 class="font-bold text-white text-sm">Emiliano López Ávalos</h3>
+              <p class="text-xs text-emerald-400 font-medium">Líder de Proyecto & Embedded Systems</p>
+              <p class="text-xs text-slate-400 mt-2">Diseño del Firmware ESP32, integraciones hardware BMP280/NEO6M y control local.</p>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-emerald-500/40 transition group">
+              <div class="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold text-lg mb-3 group-hover:scale-105 transition">
+                PM
+              </div>
+              <h3 class="font-bold text-white text-sm">Pablo Augusto Manzo Prez</h3>
+              <p class="text-xs text-cyan-400 font-medium">Arquitecto Cloud & Gateway Broker</p>
+              <p class="text-xs text-slate-400 mt-2">Configuración del enlace de comunicaciones LoRa/2G y pipelines MQTT broker.</p>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-emerald-500/40 transition group">
+              <div class="w-12 h-12 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center font-bold text-lg mb-3 group-hover:scale-105 transition">
+                DR y KU
+              </div>
+              <h3 class="font-bold text-white text-sm">Diego Ricardo Loza Dávalos y Karen Virginia Uribe Carrillo</h3>
+              <p class="text-xs text-teal-400 font-medium">Desarrollador Front-End & UX/UI</p>
+              <p class="text-xs text-slate-400 mt-2">Implementación de la SPA, mapas dinámicos Leaflet y monitoreo multi-pantalla.</p>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-emerald-500/40 transition group">
+              <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-lg mb-3 group-hover:scale-105 transition">
+                JS
+              </div>
+              <h3 class="font-bold text-white text-sm">José Julian Serrano García</h3>
+              <p class="text-xs text-indigo-400 font-medium">Base de Datos & Datalogger QA</p>
+              <p class="text-xs text-slate-400 mt-2">Persistencia MongoDB, parser de tarjetas MicroSD (.CSV) y auditoría de integridad.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Architecture Diagram -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <i class="fa-solid fa-network-wired text-emerald-400 text-xl"></i>
+              <h2 class="text-lg font-bold text-white">Esquema de Arquitectura Distribuida</h2>
+            </div>
+            <span class="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full font-mono">Protocolo: MQTT v3.1.1 over WebSockets</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
+            <!-- Node 1 -->
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-center space-y-2 relative">
+              <div class="w-10 h-10 mx-auto rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">
+                <i class="fa-solid fa-robot"></i>
+              </div>
+              <h3 class="font-bold text-xs text-white uppercase">Robot Rover Telemetría</h3>
+              <p class="text-[11px] text-slate-400">ESP32 + BMP280 + GY-NEO6M + Datalogger MicroSD</p>
+              <span class="inline-block text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-mono">Enlace LoRa (433 MHz)</span>
+            </div>
+
+            <!-- Node 2 -->
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-center space-y-2 relative">
+              <div class="w-10 h-10 mx-auto rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">
+                <i class="fa-solid fa-tower-cell"></i>
+              </div>
+              <h3 class="font-bold text-xs text-white uppercase">Gateway LoRa - 2G</h3>
+              <p class="text-[11px] text-slate-400">Receptor LoRa con Gateway GSM/GPRS Cellular Bridge</p>
+              <span class="inline-block text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded font-mono">Publica JSON TCP/IP</span>
+            </div>
+
+            <!-- Node 3 -->
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-center space-y-2 relative">
+              <div class="w-10 h-10 mx-auto rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold">
+                <i class="fa-solid fa-cloud"></i>
+              </div>
+              <h3 class="font-bold text-xs text-white uppercase">Cloud MQTT & Mongo</h3>
+              <p class="text-[11px] text-slate-400">Mosquitto MQTT Broker & Data Store Cluster</p>
+              <span class="inline-block text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded font-mono">Topicos /telemetry/*</span>
+            </div>
+
+            <!-- Node 4 -->
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-center space-y-2 relative">
+              <div class="w-10 h-10 mx-auto rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">
+                <i class="fa-solid fa-display"></i>
+              </div>
+              <h3 class="font-bold text-xs text-white uppercase">Front-End SPA</h3>
+              <p class="text-[11px] text-slate-400">Estación Web Leaflet + Chart.js + Visualización Realtime</p>
+              <span class="inline-block text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded font-mono">Cliente WebSockets</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: MONITOREO EN TIEMPO REAL -->
+      <section id="tab-monitoreo" class="p-6 space-y-6 max-w-7xl mx-auto w-full hidden">
+        <!-- Live Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Temp Card -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Temperatura (BMP280)</span>
+              <i class="fa-solid fa-temperature-high text-rose-400"></i>
+            </div>
+            <div class="flex items-baseline space-x-2">
+              <span id="metric-temp" class="text-3xl font-extrabold text-white font-mono">24.5</span>
+              <span class="text-sm font-semibold text-slate-400">°C</span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-400 flex justify-between">
+              <span>Sensor: OK</span>
+              <span id="metric-temp-trend" class="text-emerald-400"><i class="fa-solid fa-arrow-trend-up"></i> Normal</span>
+            </div>
+          </div>
+
+          <!-- Pressure Card -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Presión Atmosférica</span>
+              <i class="fa-solid fa-gauge-high text-indigo-400"></i>
+            </div>
+            <div class="flex items-baseline space-x-2">
+              <span id="metric-press" class="text-3xl font-extrabold text-white font-mono">1013.25</span>
+              <span class="text-sm font-semibold text-slate-400">hPa</span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-400 flex justify-between">
+              <span>BMP280 Barómetro</span>
+              <span class="text-slate-400">1.0 atm</span>
+            </div>
+          </div>
+
+          <!-- Altitude Card -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Altitud Calculada</span>
+              <i class="fa-solid fa-mountain text-emerald-400"></i>
+            </div>
+            <div class="flex items-baseline space-x-2">
+              <span id="metric-alt" class="text-3xl font-extrabold text-white font-mono">512.4</span>
+              <span class="text-sm font-semibold text-slate-400">m.s.n.m.</span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-400 flex justify-between">
+              <span>Referencia Barométrica</span>
+              <span class="text-emerald-400">±0.5m prec</span>
+            </div>
+          </div>
+          <!-- Test -->
+
+
+          <!-- GPS Coordinates Card -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">GPS Módulo GY-NEO6M</span>
+              <i class="fa-solid fa-location-dot text-amber-400"></i>
+            </div>
+            <div class="font-mono text-xs font-bold text-white space-y-1">
+              <p>LAT: <span id="metric-lat" class="text-emerald-400">19.2433</span></p>
+              <p>LON: <span id="metric-lng" class="text-emerald-400">-103.7247</span></p>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-400 flex justify-between">
+              <span>Satelites: 8 Fix</span>
+              <span class="text-emerald-400">Señal Excelente</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Map & Dynamic Chart Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Leaflet Live Tracking Map -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col h-[460px]">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-map-location-dot text-emerald-400"></i>
+                <h3 class="font-bold text-white text-sm">Rastro de Trayectoria GPS en Tiempo Real</h3>
+              </div>
+              <button onclick="window.app.recenterLiveMap()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg transition">
+                <i class="fa-solid fa-crosshairs mr-1"></i> Centrar Robot
+              </button>
+            </div>
+            <div id="liveMap" class="flex-1 rounded-xl overflow-hidden border border-slate-800 z-10"></div>
+          </div>
+
+          <!-- Chart.js Environmental Realtime Chart -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col h-[460px]">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-chart-area text-indigo-400"></i>
+                <h3 class="font-bold text-white text-sm">Comportamiento Telemetría (MQTT Stream)</h3>
+              </div>
+              <span class="text-xs font-mono bg-slate-800 text-emerald-400 px-2.5 py-1 rounded-md">Intervalo: 1s</span>
+            </div>
+            <div class="flex-1 relative min-h-0">
+              <canvas id="liveChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: ANÁLISIS Y BASE DE DATOS (CRUD & DATALOGGER) -->
+      <section id="tab-base-datos" class="p-6 space-y-8 max-w-7xl mx-auto w-full hidden">
+        <!-- MongoDB CRUD Table Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                <i class="fa-solid fa-database text-emerald-400"></i>
+                <span>Base de Datos de Telemetría (MongoDB Sync)</span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Gestión de registros recolectados por el sistema robótico.</p>
+            </div>
+
+            <!-- Controls: Search, Filter, Export, Add -->
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="relative">
+                <input type="text" id="dbSearch" placeholder="Buscar ID o Valor..." onkeyup="window.app.filterTable()"
+                  class="bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-xs text-slate-500"></i>
+              </div>
+
+              <select id="dbFilterMode" onchange="window.app.filterTable()" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                <option value="ALL font-sans">Todos los Modos</option>
+                <option value="AUTOMÁTICO">AUTOMÁTICO</option>
+                <option value="MANUAL">MANUAL</option>
+              </select>
+
+              <button onclick="window.app.exportData('csv')" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg font-semibold text-slate-200 transition">
+                <i class="fa-solid fa-file-csv mr-1 text-emerald-400"></i> CSV
+              </button>
+
+              <button onclick="window.app.exportData('json')" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg font-semibold text-slate-200 transition">
+                <i class="fa-solid fa-file-code mr-1 text-cyan-400"></i> JSON
+              </button>
+
+              <button onclick="window.app.openCreateModal()" class="admin-only bg-emerald-600 hover:bg-emerald-500 text-xs px-3 py-1.5 rounded-lg font-semibold text-white transition">
+                <i class="fa-solid fa-plus mr-1"></i> Nuevo Registro
+              </button>
+            </div>
+          </div>
+
+          <!-- Data Table -->
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-950 text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="p-3">ID Registro</th>
+                  <th class="p-3">Fecha / Hora</th>
+                  <th class="p-3">Temp (°C)</th>
+                  <th class="p-3">Presión (hPa)</th>
+                  <th class="p-3">Coordenadas GPS</th>
+                  <th class="p-3">Modo</th>
+                  <th class="p-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="dbTableBody" class="divide-y divide-slate-800 text-slate-300 font-mono">
+                <!-- Dynamic Rows inserted by JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Footer -->
+          <div class="flex items-center justify-between text-xs text-slate-400 pt-2">
+            <span id="dbPaginationInfo">Mostrando 1 - 10 de 10 registros</span>
+            <div class="flex space-x-2">
+              <button class="px-3 py-1 rounded bg-slate-950 border border-slate-800 hover:bg-slate-800 disabled:opacity-50" disabled>Anterior</button>
+              <button class="px-3 py-1 rounded bg-slate-950 border border-slate-800 hover:bg-slate-800 disabled:opacity-50" disabled>Siguiente</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MicroSD Datalogger Section -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+              <i class="fa-solid fa-sd-card text-amber-400"></i>
+              <span>Carga & Reconstrucción de Archivo MicroSD (.CSV)</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Sube la bitácora recuperada del datalogger local del robot para reconstrucción histórica off-line.</p>
+          </div>
+
+          <!-- Drag and Drop Zone -->
+          <div class="border-2 border-dashed border-slate-700 hover:border-emerald-500/50 rounded-2xl p-8 text-center transition cursor-pointer bg-slate-950/50 relative">
+            <input type="file" id="sdFileInput" accept=".csv" class="absolute inset-0 opacity-0 cursor-pointer" onchange="window.app.handleSDFileUpload(event)">
+            <div class="space-y-3 pointer-events-none">
+              <div class="w-12 h-12 mx-auto rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-white">Haz clic o arrastra un archivo .CSV de MicroSD aquí</p>
+                <p class="text-xs text-slate-500 mt-1">Formato esperado: Timestamp, Temperature, Pressure, Latitude, Longitude, Altitude</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SD Data Reconstruction View (Hidden by default) -->
+          <div id="sdAnalysisContainer" class="space-y-6 hidden">
+            <div class="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+                <div>
+                  <h4 id="sdFileName" class="text-xs font-bold text-white">bitacora_sd_log.csv</h4>
+                  <p id="sdFileStats" class="text-[11px] text-slate-400">150 Puntos procesados correctamente.</p>
+                </div>
+              </div>
+              <span class="text-xs font-mono bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-bold">Datos Reconstruidos</span>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- SD Path Map -->
+              <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col h-[380px]">
+                <h4 class="text-xs font-bold text-white mb-3 flex items-center space-x-2">
+                  <i class="fa-solid fa-route text-amber-400"></i>
+                  <span>Trayectoria Histórica Recuperada</span>
+                </h4>
+                <div id="sdMap" class="flex-1 rounded-lg overflow-hidden border border-slate-800 z-10"></div>
+              </div>
+
+              <!-- SD Chart -->
+              <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col h-[380px]">
+                <h4 class="text-xs font-bold text-white mb-3 flex items-center space-x-2">
+                  <i class="fa-solid fa-chart-line text-indigo-400"></i>
+                  <span>Serie Temporal de MicroSD</span>
+                </h4>
+                <div class="flex-1 relative min-h-0">
+                  <canvas id="sdChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: GESTIÓN Y CONTROL DUAL -->
+      <section id="tab-control" class="p-6 space-y-6 max-w-7xl mx-auto w-full hidden">
+        <!-- Control Mode Switcher -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-sliders text-emerald-400 text-xl"></i>
+            <div>
+              <h2 class="text-sm font-bold text-white">Selección de Modo de Control</h2>
+              <p class="text-xs text-slate-400">Alterna entre conducción remota manual o navegación por waypoints autonomous.</p>
+            </div>
+          </div>
+
+          <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button id="btnModeManual" onclick="window.app.setControlMode('manual')"
+              class="px-5 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 bg-emerald-600 text-white">
+              <i class="fa-solid fa-gamepad"></i>
+              <span>Modo Manual</span>
+            </button>
+
+            <button id="btnModeAuto" onclick="window.app.setControlMode('auto')"
+              class="px-5 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 text-slate-400 hover:text-white">
+              <i class="fa-solid fa-robot"></i>
+              <span>Modo Automático</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- MANUAL CONTROL VIEW -->
+        <div id="viewManualControl" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Directional DPAD & Speed PWM -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i class="fa-solid fa-crosshairs text-emerald-400"></i>
+                <span>Controles Direccionales y PWM</span>
+              </h3>
+              <span class="text-[10px] uppercase font-bold bg-slate-800 text-emerald-400 px-2 py-1 rounded">Telemando Directo</span>
+            </div>
+
+            <!-- D-PAD Matrix -->
+            <div class="flex justify-center my-4">
+              <div class="grid grid-cols-3 gap-3 w-48 h-48">
+                <div></div>
+                <button onclick="window.app.sendDriveCommand('FORWARD')" class="bg-slate-800 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl flex items-center justify-center text-xl shadow-lg border border-slate-700 transition">
+                  <i class="fa-solid fa-arrow-up"></i>
+                </button>
+                <div></div>
+                
+                <button onclick="window.app.sendDriveCommand('LEFT')" class="bg-slate-800 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl flex items-center justify-center text-xl shadow-lg border border-slate-700 transition">
+                  <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <button onclick="window.app.sendDriveCommand('STOP')" class="bg-rose-900/80 hover:bg-rose-600 text-white rounded-xl flex items-center justify-center text-sm font-bold shadow-lg border border-rose-700 transition">
+                  STOP
+                </button>
+                <button onclick="window.app.sendDriveCommand('RIGHT')" class="bg-slate-800 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl flex items-center justify-center text-xl shadow-lg border border-slate-700 transition">
+                  <i class="fa-solid fa-arrow-right"></i>
+                </button>
+
+                <div></div>
+                <button onclick="window.app.sendDriveCommand('BACKWARD')" class="bg-slate-800 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl flex items-center justify-center text-xl shadow-lg border border-slate-700 transition">
+                  <i class="fa-solid fa-arrow-down"></i>
+                </button>
+                <div></div>
+              </div>
+            </div>
+
+            <!-- Speed PWM Slider -->
+            <div class="space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-400 font-medium">Potencia PWM Motores</span>
+                <span id="pwmValue" class="text-emerald-400 font-bold font-mono">75%</span>
+              </div>
+              <input type="range" min="0" max="100" value="75" id="pwmSlider" oninput="window.app.updatePWM(this.value)"
+                class="w-full accent-emerald-500 bg-slate-800 h-2 rounded-lg cursor-pointer">
+            </div>
+          </div>
+
+          <!-- HTML5 Canvas Virtual Joystick -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i class="fa-solid fa-joystick text-cyan-400"></i>
+                <span>Joystick Virtual Interactivo (Touch / Mouse)</span>
+              </h3>
+              <span class="text-[10px] font-mono text-slate-400">Vector 2D</span>
+            </div>
+
+            <!-- Joystick Canvas Container -->
+            <div class="flex flex-col items-center justify-center my-2">
+              <div class="relative w-56 h-56 bg-slate-950 rounded-full border-2 border-slate-800 flex items-center justify-center shadow-inner">
+                <canvas id="joystickCanvas" width="220" height="220" class="cursor-pointer touch-none"></canvas>
+              </div>
+              <div class="mt-3 flex space-x-6 text-xs font-mono text-slate-400">
+                <span>X: <strong id="joyX" class="text-emerald-400">0.00</strong></span>
+                <span>Y: <strong id="joyY" class="text-emerald-400">0.00</strong></span>
+              </div>
+            </div>
+
+            <!-- Actuators & Auxiliaries -->
+            <div class="grid grid-cols-2 gap-3 pt-2">
+              <button onclick="window.app.toggleActuator('headlights')" class="py-2.5 px-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-semibold text-slate-300 transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-lightbulb text-amber-400"></i>
+                <span>Faros LED</span>
+              </button>
+              <button onclick="window.app.toggleActuator('buzzer')" class="py-2.5 px-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-semibold text-slate-300 transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-volume-high text-cyan-400"></i>
+                <span>Alarma Buzzer</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AUTONOMOUS CONTROL VIEW -->
+        <div id="viewAutoControl" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 hidden">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i class="fa-solid fa-map-pin text-rose-400"></i>
+                <span>Fijar Destino Autónomo en Mapa</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Haz clic sobre cualquier punto del mapa para establecer el waypoint objetivo.</p>
+            </div>
+
+            <div class="flex items-center space-x-4">
+              <div class="text-right">
+                <p class="text-[10px] uppercase font-bold text-slate-400">Destino Fijado</p>
+                <p id="targetCoordsText" class="text-xs font-mono font-bold text-emerald-400">Ninguno</p>
+              </div>
+              <button onclick="window.app.sendAutonomousMission()" class="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white px-5 py-2.5 rounded-xl transition shadow-lg flex items-center space-x-2">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>Enviar Misión Autónoma</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Autonomous Interactive Map -->
+          <div id="autoMap" class="h-[420px] rounded-xl overflow-hidden border border-slate-800 z-10"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ================= MODAL: EDIT/CREATE CRUD RECORD ================= -->
+  <div id="crudModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 id="modalTitle" class="text-base font-bold text-white">Editar Registro de Telemetría</h3>
+        <button onclick="window.app.closeCrudModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="crudForm" onsubmit="event.preventDefault(); window.app.saveCrudRecord();" class="space-y-4">
+        <input type="hidden" id="recordId">
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Temperatura (°C)</label>
+            <input type="number" step="0.1" id="inputTemp" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Presión (hPa)</label>
+            <input type="number" step="0.01" id="inputPress" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Latitud GPS</label>
+            <input type="number" step="0.000001" id="inputLat" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Longitud GPS</label>
+            <input type="number" step="0.000001" id="inputLng" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Modo de Operación</label>
+          <select id="inputMode" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+            <option value="AUTOMÁTICO">AUTOMÁTICO</option>
+            <option value="MANUAL">MANUAL</option>
+          </select>
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+          <button type="button" onclick="window.app.closeCrudModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= TOAST CONTAINERS ================= -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+<!-- Librería MQTT -->
+
+
+<!-- Servicio MQTT -->
+
+
+<!-- Aplicación principal -->
+<script src="app.js" defer></script>
+</body>
+</html>

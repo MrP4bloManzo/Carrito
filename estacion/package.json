@@ -1,0 +1,13 @@
+{
+  "name": "estacion-wifi-lora",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "mongoose": "^8.9.0",
+    "mqtt": "^5.10.3"
+  }
+}
